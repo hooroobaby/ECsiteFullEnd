@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+        TMC 商城
+    </title>
+</head>
+
+<body>
+    <%# 以下鑲嵌網頁 Header %>
+    <%- include("./basic/header.ejs") %>
+    <div class="content">
+        <div class="container mb-5">
+            <h2 class="mt-3 mb-5 text-danger">現正熱賣中</h2>
+            <div class="cards row"></div>
+        </div>
+    </div>
+    <%# 以下鑲嵌網頁商標權 Footer %>
+    <%- include("./basic/footer.ejs") %>
+
+    <script>
+        let productList = [];
+
+        $(document).ready(
+            function init() {
+            // 初始化時至資料庫取得商品資訊, 並將資料暫存在 productList 中, 供後續功能使用
+            axios.get('/api/products')
+            .then((res) => {
+                let html = "";
+                if(res.status === 200) {
+                    productList = res.data.productList;
+                    for(let i =0; i < productList.length ; i++){
+                        // 新增每一筆產品資訊至 html 中
+                        html += (
+                            `<div class="card ml-5 col-4 mb-4">
+                                <div class="card-img middle">
+                                    <img class="card-img-top middle mt-2" src=${productList[i].img} alt="error">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">${productList[i].name}</h5>
+                                    <p class="card-text">${productList[i].description}</p>
+                                    <div class="card-detail row"> 
+                                        <div class="col">售價 :<span class="text-danger mr-3">$${productList[i].amount}</span></div>
+                                        ${productList[i].amount > 0 
+                                            ? `<button href="#" class="col btn btn-danger mr-2 align-self-end" id="buy-${productList[i].id}">立即搶購</button>`
+                                            : '<button href="#" class="col btn btn-danger mr-2 align-self-end disabled">補貨中</button>'}
+                                    </div>
+                                </div>
+                            </div>`
+                        )
+                    }
+                } else {
+                    html = '<h1> 商城維護中！</h1>'
+                }
+                $('.cards').html(html)
+
+                // 綁定加入購物車點擊事件, 並點擊的商品資訊
+                for(let i =0; i < productList.length ; i++){
+                    $(document).on('click', `#buy-${productList[i].id}`, () => {buyProduct(JSON.stringify(productList[i]))});
+                }
+            })
+            .catch((error) => {
+                alert("系統發生錯誤，請洽管理員。");
+                location.reload();
+            })
+            // $('#products').DataTable();
+        } );
+
+        // 加入購物車
+        function buyProduct(productInfo) {
+            productInfo = JSON.parse(productInfo);
+            // 先檢查購物車中是否有商品
+            let shopcart = window.localStorage.getItem("shopcart") != undefined 
+            && window.localStorage.getItem("shopcart") != null
+            && window.localStorage.getItem("shopcart").length > 1
+            ? JSON.parse(window.localStorage.getItem("shopcart")) : [];
+
+            // 建立 array 將購物車中已存在的商品放入, 以便下一流程檢查新加入的商品是否已存在購物車
+            let idArr = [];
+            for (let i in shopcart) {
+                idArr.push(shopcart[i].id);
+            }
+            // 若點擊的商品已存在購物車中則不再新增此商品
+            if(!idArr.includes(productInfo.id)){
+                shopcart.push({id : productInfo.id, name : productInfo.name, price: productInfo.amount, amount: 1});
+            }
+            // 將新增的商品存回 localstorage中
+            window.localStorage.setItem("shopcart", JSON.stringify(shopcart));
+            // 更新右上角購物車中商品數量顯示
+            $("#shopcart").text(`購物車(${shopcart.length})`);
+            alert("商品已新增至購物車！")
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TMC 商城</title>
+    </head>
+
+    <body>
+        <%# 以下鑲嵌網頁 Header %> <%- include("./basic/header.ejs") %>
+        <div class="content">
+            <div class="container mb-5">
+                <form class="login">
+                    <div class="border-gray w-50 middle p-4 mt-5 text-center">
+                        <h2 class="my-3 text-danger text-center">會員註冊</h2>
+                        <div class="middle mt-4">
+                            <label for="name" class="w-10">姓名 ： </label>
+                            <input
+                                class="name"
+                                name="name"
+                                placeholder="請輸入姓名"
+                            />
+                        </div>
+                        <div class="middle mt-4">
+                            <label for="phone" class="w-10">連絡電話 ： </label>
+                            <input
+                                class="phone"
+                                name="phone"
+                                placeholder="請輸入連絡電話"
+                            />
+                        </div>
+                        <div class="middle mt-4">
+                            <label for="email" class="w-10">EMAIL ： </label>
+                            <input
+                                class="email"
+                                name="email"
+                                placeholder="請輸入EMAIL"
+                            />
+                        </div>
+                        <div class="middle mt-4">
+                            <label for="birthday" class="w-10">生日 ： </label>
+                            <input
+                                class="birthday"
+                                name="birthday"
+                                placeholder="請輸入生日 2022-01-01"
+                            />
+                        </div>
+                        <div class="middle mt-4">
+                            <label for="account" class="w-10">帳號 ： </label>
+                            <input
+                                class="account"
+                                name="account"
+                                placeholder="請輸入帳號"
+                            />
+                        </div>
+                        <div class="my-3 middle">
+                            <label for="password" class="w-10">密碼 ： </label>
+                            <input
+                                class="password"
+                                name="password"
+                                type="password"
+                                placeholder="請輸入密碼"
+                            />
+                        </div>
+                        <div class="my-3 middle">
+                            <label for="confirm-password" class="w-10"
+                                >確認密碼 ：
+                            </label>
+                            <input
+                                class="confirm-password"
+                                name="confirm-password"
+                                type="password"
+                                placeholder="請輸入密碼"
+                            />
+                        </div>
+                        <div class="text-center">
+                            <button
+                                type="button"
+                                onclick="register()"
+                                class="btn btn-danger mr-3"
+                            >
+                                註冊
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-outline-secondary"
+                                onclick="reset()"
+                            >
+                                重填
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <%# 以下鑲嵌網頁商標權 Footer %> <%- include("./basic/footer.ejs") %>
+    </body>
+
+    <script>
+        // 註冊
+        function register() {
+            if ($(".password").val() === $(".confirm-password").val()) {
+                let data = {
+                    name: $(".name").val(),
+                    phone: $(".phone").val(),
+                    email: $(".email").val(),
+                    birthday: $(".birthday").val(),
+                    account: $(".account").val(),
+                    password: $(".password").val(),
+                };
+                axios
+                    .post("/api/register", data)
+                    .then((res) => {
+                        if (res.status === 200) {
+                            alert("註冊成功！請登入會員。");
+                            window.location.href = "/login";
+                        }
+                    })
+                    .catch((error) => {
+                        alert("註冊失敗，請重新操作。");
+                        location.reload();
+                    });
+            }
+        }
+
+        // 清空時, 將 Input 輸入框中的值全部改為空值
+        function reset() {
+            $(".name").val();
+            $(".phone").val();
+            $(".email").val();
+            $(".birthday").val();
+            $(".account").val();
+            $(".password").val();
+            $(".confirm-password").val();
+        }
+    </script>
+</html>

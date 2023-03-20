@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- jquery -->
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+        <!-- fontawesome圖示 -->
+        <script
+            src="https://kit.fontawesome.com/c03ec31dc2.js"
+            crossorigin="anonymous"
+        ></script>
+        <!-- bootstrap css & js -->
+        <link rel="stylesheet" href="/css/bootstrap.css" />
+        <link rel="stylesheet" href="/stylesheets/style.css" />
+        <script language="javascript" src="js/bootstrap.min.js"></script>
+        <!-- datatable使用 -->
+        <script
+            src="https://code.jquery.com/jquery-3.5.1.js"
+            crossorigin="anonymous"
+        ></script>
+        <script
+            src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"
+            crossorigin="anonymous"
+        ></script>
+        <script
+            src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js"
+            crossorigin="anonymous"
+        ></script>
+        <link
+            rel="stylesheet"
+            href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css"
+        />
+        <!-- axios -->
+        <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    </head>
+
+    <body>
+        <nav class="navbar navbar-light bg-light header-bar">
+            <a class="navbar-brand ml-4" href="/">
+                <!-- 使用 fontawesome 樣式 -->
+                <i class="fas fa-store"></i>
+                TMC SHOP
+            </a>
+            <div class="customer-area">
+                <!-- 使用下拉選單, 當用戶點擊時, 才顯示內容列表 -->
+                <div class="dropdown">
+                    <button
+                        class="btn dropdown-toggle no-shadow"
+                        type="button"
+                        id="dropdownMenuButton1"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                    >
+                        <i class="fas fa-user-friends text-black"></i>
+                    </button>
+                    <ul
+                        class="dropdown-menu"
+                        aria-labelledby="dropdownMenuButton1"
+                    >
+                        <li>
+                            <a class="dropdown-item" href="/login" id="login"
+                                >登入</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="/history"
+                                id="history"
+                                >訂單紀錄</a
+                            >
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/admin" id="backend"
+                                >後臺管理</a
+                            >
+                        </li>
+                        <!-- 當用戶登出時, 清空 localstorage 中用戶資料 -->
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="/index"
+                                id="logout"
+                                onclick="logout()"
+                                >登出</a
+                            >
+                        </li>
+                    </ul>
+                </div>
+                <button
+                    class="btn verticle-center ml-3 mr-4 no-shadow"
+                    onclick="toPage('shoptcart')"
+                >
+                    <i class="fas fa-shopping-cart"></i>
+                    <span id="shopcart">購物車(0)</span>
+                </button>
+            </div>
+        </nav>
+    </body>
+
+    <script>
+        $(document).ready(function init() {
+            let cust = null;
+            // 進入頁面時先檢查是否有 custAccount客資
+            // 此處使用 localstorage 搭配 cookie使用, 在 cookie 設置客資存活有效期限,
+            // 並在每次取 localStorage 時, 先至 cookie 檢查是否期限已過, 或是否曾關閉瀏覽器清空 cookie
+            if (!getCookie("custAccount")) {
+                // 若 cookie 中不存在客資, 則清空 localStorage 客資紀錄 ( 表示登入有效期限已過或瀏覽器已被關閉 )
+                localStorage.removeItem("custAccount");
+            } else {
+                cust = window.localStorage.getItem("custAccount");
+            }
+            if (cust !== null) {
+                cust = JSON.parse(cust);
+                $("#login").hide();
+                $("#logout").show();
+                // 若用戶種類為 2 -> 表示為管理員身分, 才顯示後台管理選項,
+                // 一般實務上, 會在後臺相關的 API 中驗證使用者客資是否為管理員身分
+                if (cust.type === "2") {
+                    $("#backend").show();
+                } else {
+                    $("#backend").hide();
+                }
+            } else {
+                // 若無客資則隱藏登出、後臺管理、訂單紀錄選項
+                $("#login").show();
+                $("#backend").hide();
+                $("#logout").hide();
+                $("#history").hide();
+            }
+            // 取得客資是否曾在網站中將商品加入購物車
+            let shopcart = window.localStorage.getItem("shopcart");
+            if (shopcart !== null) {
+                shopcart = JSON.parse(shopcart);
+                if (shopcart.length > 0) {
+                    $("#shopcart").text(`購物車(${shopcart.length})`);
+                }
+            }
+        });
+
+        // 登出清空 localStorage 的 custaccount 資料
+        function logout() {
+            window.localStorage.removeItem("custAccount");
+            alert("您已登出成功！");
+        }
+
+        // 導頁至購物車
+        function toPage(page) {
+            window.location.href = "/shopcart";
+        }
+
+        //取得 cookie 中, 是否存在欲查詢的資料
+        function getCookie(name) {
+            // 例如 custaccount=.... 是否存在
+            let nameEq = name + "=";
+            // 因 cookie 資料為字串形式, 各項資料以;做分割
+            // 所以檢查方式為用 ; 分割後檢查每一筆資料開頭是否為 custaccount=
+            let ca = document.cookie.split(";");
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i]; //取得字符串
+                // 將字串中空格去除
+                while (c.charAt(0) === " ") {
+                    c = c.substring(1, c.length);
+                }
+                if (c.indexOf(nameEq) === 0) {
+                    return unescape(c.substring(nameEq.length, c.length));
+                }
+            }
+            return false;
+        }
+    </script>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/css/bootstrap.css" />
+
+        <title>TMC 商城訂單紀錄</title>
+    </head>
+
+    <body>
+        <%# 以下鑲嵌網頁 Header %> <%- include("./basic/header.ejs") %>
+        <div class="content">
+            <div class="container mb-5">
+                <h2 class="mt-3 mb-5 text-danger">訂單紀錄</h2>
+
+                <table
+                    id="hisotry"
+                    class="border-gray table table-striped table-bordered my-5"
+                >
+                    <thead>
+                        <tr>
+                            <th>訂單編號</th>
+                            <th>收件人</th>
+                            <th>收件人連絡電話</th>
+                            <th>收件地址</th>
+                            <th>購買日期</th>
+                            <th>訂單金額</th>
+                            <th>訂單狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody class="history-content"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <%# 以下鑲嵌網頁商標權 Footer %> <%- include("./basic/footer.ejs") %>
+    </body>
+
+    <script>
+            $(document).ready(
+                function() {
+                $('#hisotry').DataTable({
+                    "info": false,
+                    "searching": false,
+                    "paging": false,
+                    "ordering": false,
+                    "language": {
+                        "emptyTable": "查無訂單紀錄！"
+                    }
+                });
+
+                // 進入頁面時先檢查是否有 custAccount客資
+                // 此處使用 localstorage 搭配 cookie使用, 在 cookie 設置客資存活有效期限,
+                // 並在每次取 localStorage 時, 先至 cookie 檢查是否期限已過, 或是否曾關閉瀏覽器清空 cookie
+                let cust = null;
+                if(!getCookie('custAccount')){
+                    localStorage.removeItem('custAccount');
+                } else {
+                    cust = JSON.parse(window.localStorage.getItem("custAccount"));
+                }
+                // 以登入的用戶ID查詢歷史訂單紀錄
+                if (cust !== null) {
+                    axios.get(`/api/history/${cust.id}`)
+                    .then((res) => {
+                        let html = "";
+                        if(res.status === 200) {
+                            if(res.data.result.length > 0) {
+                                let result = res.data.result;
+                                for(let i =0; i < result.length ; i++){
+                                    // 若有查詢到訂單紀錄, 則建立每筆訂單紀錄的 html
+                                    html += (
+                                        `<tr>
+                                            <th>${result[i].id}</th>
+                                            <th>${result[i].cust_name}</th>
+                                            <th>${result[i].phone}</th>
+                                            <th>${result[i].address}</th>
+                                            <th>${dateString(result[i].create_date)}</th>
+                                            <th>${result[i].total}</th>
+                                            <th>${"1" === result[i].status ? "待付款" : "已付款，待出貨。"}</th>
+                                        </tr>`
+                                    )
+                                }
+                            }else {
+                                alert("查無訂單紀錄！")
+                            }
+                            $('.history-content').html(html)
+                        } else {
+                            alert("查無訂單紀錄！")
+                        }
+                    })
+                    .catch((error) => {
+                        alert("系統發生錯誤，請洽管理員。");
+                        location.reload();
+                    })
+
+                }
+
+            });
+
+              //取得 cookie 中, 是否存在欲查詢的資料
+              function getCookie(name) {
+                // 例如 custaccount=.... 是否存在
+                let nameEq = name + "=";
+                // 因 cookie 資料為字串形式, 各項資料以;做分割
+                // 所以檢查方式為用 ; 分割後檢查每一筆資料開頭是否為 custaccount=
+                let ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i]; //取得字符串
+                    // 將字串中空格去除
+                    while (c.charAt(0) === ' ') {
+                        c = c.substring(1, c.length);
+                    }
+                    if (c.indexOf(nameEq) === 0) {
+                        return unescape(c.substring(nameEq.length, c.length));
+                    }
+                }
+                return false;
+            }
+
+            // 將取得的時間 (毫秒) 轉為 YYYY/MM/DD HH:MM:SS 的字串顯示
+            function dateString(create_date) {
+            let date = new Date(create_date);
+            return dateStr =
+            date.getFullYear() + "/" +
+            ("00" + (date.getMonth() + 1)).slice(-2) + "/" +
+            ("00" + date.getDate()).slice(-2) + " " +
+            ("00" + date.getHours()).slice(-2) + ":" +
+            ("00" + date.getMinutes()).slice(-2) + ":" +
+            ("00" + date.getSeconds()).slice(-2);
+        }
+    </script>
+</html>

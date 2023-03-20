@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+        TMC 商城
+    </title>
+</head>
+
+<body>
+    <%# 以下鑲嵌網頁 Header %>
+    <%- include("./basic/header.ejs") %>
+    <div class="content">
+        <div class="container mb-5">
+            <form class="login">
+                <div class="border-gray w-30 middle p-4 mt-5">
+                    <h2 class="my-3 text-danger text-center">會員登入</h2>
+                    <div class="middle mt-4 text-center">
+                        <label for="account">帳號 ： </label>
+                        <input class="account" name="account" placeholder="請輸入帳號">
+                    </div>
+                    <div class="my-3 middle text-center">
+                        <label for="password">密碼 ： </label>
+                        <input class="password" name="password" type="password" placeholder="請輸入密碼">
+                    </div>
+                    <div class="middle text-center mb-1">
+                        <span class="text-danger"> <%= typeof(custaccount) === 'undefined' && typeof(success) !== 'undefined' && !success ? "登入失敗，請重新輸入正確的帳號密碼！" : "" %></span>
+                    </div>
+                    <div class="text-center mb-2">尚未加入會員，請點此<a href='/register'>註冊</a></div>
+                    <div class="text-center">
+                        <button type="button" onclick="login()" class="btn btn-danger mr-3">
+                            登入
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" href="#">
+                            重填
+                        </button>
+                    </div>
+                </div>  
+            </form>
+        </div>
+    </div>
+
+    <%# 以下鑲嵌網頁商標權 Footer %>
+    <%- include("./basic/footer.ejs") %>
+</body>
+
+<script>
+    // 登入
+    function login() {
+        let data = {
+            account: $(".account").val(),
+            password: $(".password").val(),
+        }
+        axios.post('/api/login', data )
+        .then((res) => {
+            if(res.status === 200) {
+                // 登入成功時, 將回傳的客資存入 localstorage 中, 並將用戶導至首頁
+                setInfo("custAccount", JSON.stringify(res.data.custAccount))
+                window.location.href = "/index";
+            }
+        })
+        .catch((error) => {
+            alert("登入失敗，請重新登入。")
+            location.reload();
+        })
+    }
+
+    // 利用 cookie 控管 localstorage 的生命週期  
+    function setCookie(name, value, seconds) {
+        seconds = seconds || 0;
+        let expires = "";
+        if (seconds !== 0) {      //設置 cookie 有效時間   
+            let date = new Date();
+            // 此處有效時間單位為毫秒
+            date.setTime(date.getTime() + (seconds * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        // 將設置好的資訊存回 cookie 中
+        document.cookie = name + "=" + escape(value) + expires + "; path=/";   
+    }
+
+    function setInfo(key, value) {
+        localStorage.setItem(key, value);
+        // 登入有效時間設置為 10 分鐘
+        setCookie(key,value, 600);
+    }
+
+</script>
+</html>

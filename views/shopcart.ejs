@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/bootstrap.css"/>
+
+    <title>
+        TMC 商城購物車
+    </title>
+</head>
+
+<body>
+    <%# 以下鑲嵌網頁 Header %>
+    <%- include("./basic/header.ejs") %>
+    <div class="content">
+        <div class="container mb-5">
+            <div id="page1" class="">
+                <h2 class="mt-3 mb-5 text-danger">購物車</h2>
+                <table id="products" class="border-gray table table-striped table-bordered my-5" >
+                    <thead class="text-center">
+                        <tr>
+                            <th>商品名稱</th>
+                            <th>單價</th>
+                            <th>數量</th>
+                            <th>小計</th>
+                            <th>移除商品</th>
+                        </tr>
+                    </thead>
+                    <tbody class="products-content text-center"></tbody>
+                </table>
+                <hr/>
+                <h5 class="text-right w-100 font-weight-bold">總計 $ <span id="total">0</span> 元</h5>
+                <div class="text-right">
+                    <!-- 當用戶確認完商品時, 導至商品收貨資料填寫頁 -->
+                    <button id="changePage" class="btn btn-lg btn-danger mb-3" onclick="changePage()">填寫訂單資料</button>
+                </div>
+            </div>
+            <div id="page2" class="d-none">
+                <h2 class="mt-3 mb-5 text-danger">訂單資料</h2>
+                <table>
+                    <tr>
+                        <td class="w-10"><label>收件人姓名 : </label></td>   
+                        <td><input id="orderName"></td>
+                    </tr>
+                    <tr>
+                        <td class="w-10"><label>收件人電話 : </label></td>   
+                        <td><input id="orderPhone"></td>
+                    </tr>
+                    <tr>
+                        <td class="w-10"><label>收件地址 : </label></td>   
+                        <td><input id="orderAddress"></td>
+                    </tr>
+                    <tr>
+                        <td class="w-10"><label>結帳金額 : </label></td>   
+                        <td><span class="total"> </span> 元</td>
+                    </tr>
+                    <tr>
+                        <td class="w-10"><label>付款方式 : </label></td>   
+                        <td>
+                            <input type="radio" id="credit" name="payment" value="credit">
+                            <label for="credit" class="mr-3">信用卡付款</label>
+                            <input type="radio" id="bank" name="payment" value="bank">
+                            <label for="bank">銀行轉帳</label>
+                        </td>
+                    </tr>
+                </table>
+                <hr/>
+                <div class="text-right">
+                    <button id="submitOrder" class="btn btn-lg btn-danger mb-3" onclick="submitOrder()">結帳</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="pay"></div>
+    <%# 以下鑲嵌網頁商標權 Footer %>
+    <%- include("./basic/footer.ejs") %>
+</body>
+
+<script>
+    let productList;
+    $(document).ready(
+        function init(){
+        // 從 localstorage 中取得購物車商品
+        productList = localStorage.getItem("shopcart") === undefined 
+        || localStorage.getItem("shopcart") === null
+        || localStorage.getItem("shopcart").length <1
+        ? [] : JSON.parse(localStorage.getItem("shopcart"));
+        let total = 0;
+        let html = "";
+        // 因結帳成功會導回此頁並在參數中加上是否成功訊息, 因此若後面帶有 success 時, 表示用戶結帳成功
+        // 顯示購買成功提醒訊息！
+        let search = new URLSearchParams(window.location.search);
+        if(search.get('success')) {
+            alert("購買成功！再去看看別的商品吧。")
+            localStorage.setItem("shopcart", "");
+            window.location.href = "/index"
+        }
+
+        if(productList !== null && productList !== undefined && productList.length > 0){
+            // 將購物車中的商品資訊組成 html 顯示在頁面
+            for(let i =0; i < productList.length ; i++){
+                total += productList[i].price * productList[i].amount;
+                html += (
+                    `<tr id="content-${productList[i].id}">
+                        <th>${productList[i].name}</th>
+                        <th id="price-${productList[i].id}">${productList[i].price}</th>
+                        <th>
+                            <button class="circle-button bg-white" id="minus-${productList[i].id}">-</button>
+                            <span id="count-${productList[i].id}">${productList[i].amount}</span>
+                            <button class="circle-button bg-white" id="plus-${productList[i].id}">+</button>
+                        </th>
+                        <th id="subAmount-${productList[i].id}">${productList[i].price * productList[i].amount}</th>
+                        <th><button id="delete-${productList[i].id}" class="btn btn-danger">刪除</button></th>
+                    </tr>`
+                )
+            }
+            $('.products-content').html(html);
+            // 綁定數量 +- 與刪除商品的事件
+            for(let i =0; i < productList.length ; i++){
+                $(`#plus-${productList[i].id}`).on('click', (e) => {plus(e, productList[i].id)});
+                $(`#minus-${productList[i].id}`).on('click', (e) => {minus(e, productList[i].id)});
+                $(`#delete-${productList[i].id}`).on('click', (e) => {remove(e, productList[i].id)});
+            }
+        } else {
+            // 當購物車無商品時, 禁止用戶至填寫資料頁面
+            $('#changePage').addClass("disabled");
+        }
+        // 將商品總額放入頁面中
+        $('#total').text(total);
+        $('#products').DataTable({
+            "info": false,
+            "searching": false,
+            "paging": false,
+            "ordering": false,
+            "language": {
+                "emptyTable": "尚未選購商品！"
+            }
+        });
+    } );
+
+    // 新增商品
+    function plus(e, id) {
+        // 取得商品單價及當前選購數量, 並更新商品小計 & 整筆訂單總金額
+        let price = (Number)($(`#price-${id}`).text());
+        let subAmount = (Number)($(`#subAmount-${id}`).text());
+        let total = (Number)($(`#total`).text());
+        $(`#count-${id}`).text((Number)($(`#count-${id}`).text()) + 1);
+        $(`#subAmount-${id}`).text(subAmount + price);
+        $(`#total`).text(Number(total) + Number(price));
+        for(let i in productList){
+            if(productList[i].id === id){
+                productList[i].amount += 1;
+            }
+            localStorage.setItem("shopcart", JSON.stringify(productList));
+        }
+    }
+    
+    function minus(e, id) {
+        // 取得商品單價及當前選購數量, 並更新商品小計 & 整筆訂單總金額
+        // 需注意商品數量至 0 時, 就不能再扣數量, 以免產生負數金額
+        let curCount = (Number)($(`#count-${id}`).text()) - 1 > 0 ? (Number)($(`#count-${id}`).text()) - 1 : 0;
+        let price = (Number)($(`#price-${id}`).text());
+        let subAmount = (Number)($(`#subAmount-${id}`).text());
+        let total = (Number)($(`#total`).text());
+        if($(`#count-${id}`).text() - 1 >= 0) {
+            $(`#count-${id}`).text(curCount);
+            $(`#subAmount-${id}`).text(subAmount - price);
+            $(`#total`).text(Number(total) - Number(price));
+            for(let i in productList){
+                if(productList[i].id === id){
+                    productList[i].amount -= 1;
+                }
+            }
+           localStorage.setItem("shopcart", JSON.stringify(productList));
+        }
+    }
+
+    // 刪除購物車中商品
+    function remove(e, id) {
+        // 總金額需減去該商品小計, 並移除該商品 ID 的 html 及 localstorage 中該商品的資訊
+        let total = (Number)($(`#total`).text());
+        let subAmount = (Number)($(`#subAmount-${id}`).text());
+        $(`#total`).text(total - subAmount);
+
+        $(`#content-${id}`).remove();
+        let productList = JSON.parse(localStorage.getItem("shopcart"));
+        for(let i in productList) {
+            if(productList[i].id === id) {
+                productList.pop(productList[i]);
+            }
+        }
+        $("#shopcart").text(`購物車(${productList.length})`);
+        localStorage.setItem("shopcart", JSON.stringify(productList));
+
+        if(productList.length < 1) {
+            $('#changePage').addClass("disabled");
+        }
+    }
+
+    // 顯示寄件資料填寫頁
+    function changePage() {
+        $("#page1").addClass("d-none");
+        $("#page2").removeClass("d-none");
+        $(".total").text($("#total").text());
+    }
+
+    // 將訂單資訊、用戶選擇的結帳方式送至後端, 取得綠界金流的導頁連結
+    function submitOrder() {
+        console.log("in")
+        let custAccount = JSON.parse(localStorage.getItem("custAccount"));
+        let order = {
+            name : $("#orderName").val(),
+            phone : $("#orderPhone").val(),
+            address : $("#orderAddress").val(),
+            total: $("#total").text(),
+            payment: $('input[name="payment"]:checked').val()
+        }
+        axios.post('/api/submitOrder', {productList:productList, custAccount :custAccount, order: order, total: total})
+        .then((res) => {
+            if(res.status === 200) {
+                // 因綠界SDK產生的資訊中帶有javascript自動submit, 所以只要在成功取得導頁資訊後, 將資訊新增進頁面中即可自動轉頁
+                $("#pay").html(res.data.result);
+            }
+        })
+        .catch((error) => {
+            alert("系統發生錯誤，請洽管理員。");
+            location.reload();
+        })
+    }
+</script>
+
+</html>
